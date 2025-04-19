@@ -1,11 +1,11 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"log"
 	"net"
+
+	"github.com/bmamha/httpfromtcp/internal/request"
 )
 
 func main() {
@@ -20,30 +20,15 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		cs := getLinesChannel(conn)
-		for line := range cs {
-			fmt.Printf("%s\n", line)
-		}
 
-		fmt.Println("Channel is closed")
+		r, err := request.RequestFromReader(conn)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("Request line:")
+		fmt.Printf("- Method: %s\n", r.RequestLine.Method)
+		fmt.Printf("- Target: %s\n", r.RequestLine.RequestTarget)
+		fmt.Printf("- Version: %s\n", r.RequestLine.HttpVersion)
+
 	}
-}
-
-func getLinesChannel(f io.ReadCloser) <-chan string {
-	stringsChannel := make(chan string)
-	go func() {
-		defer f.Close()
-		defer close(stringsChannel)
-
-		scanner := bufio.NewScanner(f)
-		for scanner.Scan() {
-			line := scanner.Text()
-			stringsChannel <- line
-		}
-		if err := scanner.Err(); err != nil {
-			fmt.Printf("error: %s\n", err.Error())
-		}
-	}()
-
-	return stringsChannel
 }
