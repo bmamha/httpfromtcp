@@ -48,6 +48,11 @@ func handlerfunc(w *response.Writer, req *request.Request) {
 		return
 	}
 
+	if req.RequestLine.RequestTarget == "/video" {
+		videoHandler(w, req)
+		return
+	}
+
 	responseWriter(w, 200, "Your request was an absolute banger.")
 }
 
@@ -116,4 +121,30 @@ func proxyHandler(w *response.Writer, req *request.Request) {
 		}
 
 	}
+}
+
+func videoHandler(w *response.Writer, req *request.Request) {
+	videoFile, err := os.ReadFile("./assets/vim.mp4")
+	if err != nil {
+		responseWriter(w, 400, "Error processing video file")
+		return
+	}
+	err = w.WriteStatusLine(200)
+	if err != nil {
+		fmt.Printf("unable to write status line: %v", err)
+		return
+	}
+	w.Headers.Set("Content-Type", "video/mp4")
+	w.Headers.Set("Content-Length", fmt.Sprintf("%d", len(videoFile)))
+	w.Headers.Set("Accept-Ranges", "bytes")
+	err = w.WriteHeaders()
+	if err != nil {
+		fmt.Printf("Unable to write headers: %v", err)
+		return
+	}
+	_, err = w.Writer.Write(videoFile)
+	if err != nil {
+		fmt.Printf("unable to write video: %v", err)
+	}
+	w.State = response.WritingStatusLine
 }
